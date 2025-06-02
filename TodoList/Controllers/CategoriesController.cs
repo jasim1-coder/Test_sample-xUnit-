@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TodoList.Data;
 using TodoList.Models;
+using TodoList.Repositories;
 
 namespace TodoList.Controllers
 {
@@ -10,55 +11,50 @@ namespace TodoList.Controllers
     [ApiController]
     public class CategoriesController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        public CategoriesController(AppDbContext context)
+        private readonly ICategoryRepository _categoryRepository;
+        public CategoriesController(ICategoryRepository categoryRepository)
         {
-            _context = context;
+            _categoryRepository = categoryRepository;
         }
 
         // GET api/categories?parentId=5
         [HttpGet]
         public async Task<IActionResult> GetCategories([FromQuery] int? parentId)
         {
-            var categories = await _context.Categories
-                .Where(c => c.ParentCategoryId == parentId)
-                .ToListAsync();
-
+            var categories = await _categoryRepository.GetCategories(parentId);
             return Ok(categories);
+
         }
 
-        [HttpPost]
+        [HttpPost("Create categories")]
         public async Task<IActionResult> CreateCategory(Category category)
         {
-            if (string.IsNullOrWhiteSpace(category.Name))
-                return BadRequest("Category name is required.");
-
-            if (category.ParentCategoryId == 0)
-                category.ParentCategoryId = null;
-
-            // Optional: Validate ParentCategoryId if not null exists in DB
-            if (category.ParentCategoryId != null)
+            try
             {
-                var parentExists = await _context.Categories.AnyAsync(c => c.Id == category.ParentCategoryId);
-                if (!parentExists)
-                    return BadRequest("Parent category does not exist.");
+                await _categoryRepository.CreateCategories(category);
+                return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category);
+            }
+            catch (ArgumentException e)
+            {
+                return BadRequest(e.Message);
+
+            }
+            catch (InvalidOperationException e)
+            {
+                return BadRequest(e.Message);
+            }
+            catch (Exception e) 
+            {
+                return BadRequest(e.Message);
             }
 
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category);
         }
-
-
 
         // GET api/categories/5
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCategoryById(int id)
         {
-            var category = await _context.Categories
-                .Include(c => c.ChildCategories)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var category = await _categoryRepository.GetCategoryById(id);
 
             if (category == null) return NotFound();
 
