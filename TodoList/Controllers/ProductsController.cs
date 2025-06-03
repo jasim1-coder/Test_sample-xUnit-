@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using TodoList.Data;
 using TodoList.Dtos;
 using TodoList.Models;
+using TodoList.Repositories;
 
 namespace TodoList.Controllers
 {
@@ -12,40 +13,43 @@ namespace TodoList.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IProductRepository _repository;
         
-        public ProductsController(AppDbContext context)
+        public ProductsController(AppDbContext context, IProductRepository repository)
         {
             _context = context;
+            _repository = repository;
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateProduct(Product product)
         {
-            if (string.IsNullOrWhiteSpace(product.Name))
-                return BadRequest("Product name is required.");
 
-            //check if the category exists
-            var category = await _context.Categories
-                            .Include(c => c.ChildCategories)
-                            .FirstOrDefaultAsync(c => c.Id == product.CategoryId);
-
-            if (category == null)
-                return BadRequest("Category does not exist.");
-
-            //check if its a leaf category 
-            if (category.ChildCategories != null && category.ChildCategories.Any())
-                return BadRequest("Product can only be added to a leaf category with no subcatgories ");
-
-                
-
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
+            var result = await _repository.CreateProduct(product);
+            if (!result.IsSuccess) 
+            {
+                return BadRequest(result.ErrorMessage);
+            }
 
             return CreatedAtAction(nameof(GetProductById), new { id = product.Id }, product);
         }
 
 
-        [HttpPost]
+        
+
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetProductById(int id)
+        {
+           var result = await _repository.GetProductById(id);
+            if (!result.IsSuccess) 
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+            return Ok(result.Value);
+        }
+
+
         private async Task<string> GetCategoryPathAsync(Category category)
         {
             var path = new List<string>();
@@ -56,28 +60,6 @@ namespace TodoList.Controllers
                 category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == category.ParentCategoryId);
             }
             return string.Join(" > ", path);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetProductById(int id)
-        {
-            var product = await _context.Products
-                .Include(p => p.Category)
-                .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (product == null) return NotFound();
-
-            var categoryPath = await GetCategoryPathAsync(product.Category);
-
-            var dto = new ProductDto
-            {
-                Id = product.Id,
-                Name = product.Name,
-                CategoryId = product.CategoryId,
-                CategoryPath = categoryPath
-            };
-
-            return Ok(dto);
         }
 
         [HttpGet("by-category/{categoryId}")]
