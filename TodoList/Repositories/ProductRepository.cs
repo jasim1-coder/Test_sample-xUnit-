@@ -84,5 +84,65 @@ namespace TodoList.Repositories
             }
 
         }
+
+
+        public async Task<List<int>> GetAllNestedCategoryIds(int categoryid)
+        {
+            var result = new List<int>() { categoryid };
+            var queue = new Queue<int>();
+            queue.Enqueue(categoryid);
+            while (queue.Count > 0)
+            {
+                var currentId = queue.Dequeue();
+
+                var categoryids = await _context.Categories.Where(c => c.ParentCategoryId == currentId).Select(c => c.Id).ToListAsync();
+
+                foreach(var child in categoryids)
+                {
+                    result.Add(child);
+                    queue.Enqueue(child);
+                }
+            }
+            return result;
+        }
+
+        public async Task<Result<List<ProductDto>>> GetProductsInCategory(int categoryId)
+        {
+            try
+            {
+                if (categoryId <= 0)
+                {
+                    return Result<List<ProductDto>>.Fail("Invalid category ID.");
+                }
+                var allcategoryId = await GetAllNestedCategoryIds(categoryId);
+
+                var products = await _context.Products
+                                    .Where(p => allcategoryId.Contains(p.CategoryId))
+                                    .Include(p => p.Category)
+                                    .ToListAsync();
+
+                var result = new List<ProductDto>();
+                foreach (var product in products)
+                {
+                    var path = await GetCategoryPathAsync(product.Category);
+                    result.Add(new ProductDto
+                    {
+                        Id = product.Id,
+                        Name = product.Name,
+                        CategoryId = product.CategoryId,
+                        CategoryPath = path,
+
+                    });
+
+                }
+                return Result<List<ProductDto>>.Success(result);
+            }
+            catch (Exception ex) 
+            {
+                return Result<List<ProductDto>>.Fail("Excepiton occured", ex);
+            }
+
+        }
+
     }
 }

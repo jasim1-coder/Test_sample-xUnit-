@@ -8,5 +8,6 @@ namespace TodoList.Repositories
     {
         Task<Result<Product>> CreateProduct(Product product);
         Task<Result<ProductDto>> GetProductById(int id);
+        Task<Result<List<ProductDto>>> GetProductsInCategory(int categoryId);
     }
 }

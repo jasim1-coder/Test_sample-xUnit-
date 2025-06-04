@@ -49,78 +49,17 @@ namespace TodoList.Controllers
             return Ok(result.Value);
         }
 
-
-        private async Task<string> GetCategoryPathAsync(Category category)
-        {
-            var path = new List<string>();
-            while (category != null)
-            {
-                path.Insert(0, category.Name);
-                if (category.ParentCategoryId == null) break;
-                category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == category.ParentCategoryId);
-            }
-            return string.Join(" > ", path);
-        }
-
         [HttpGet("by-category/{categoryId}")]
         public async Task<IActionResult> GetProductsByCategory(int categoryId)
         {
-
-            // Get all nested category IDs including this one
-            var allCategoryIds = await GetAllNestedCategoryIds(categoryId);
-
-            var products = await _context.Products
-                .Where(p => allCategoryIds.Contains(p.CategoryId))
-                .Include(p => p.Category)
-                .ToListAsync();
-
-            var result = new List<ProductDto>();
-            foreach (var product in products)
+            var result = await _repository.GetProductsInCategory(categoryId);
+            if (!result.IsSuccess)
             {
-                var path = await GetCategoryPathAsync(product.Category);
-                result.Add(new ProductDto
-                {
-                    Id = product.Id,
-                    Name = product.Name,
-                    CategoryId = product.CategoryId,
-                    CategoryPath = path
-                });
+                return BadRequest(result.ErrorMessage);
             }
 
-            return Ok(result);
+            return Ok(result.Value);
         }
-
-
-
-
-
-
-        private async Task<List<int>> GetAllNestedCategoryIds(int parentId)
-        {
-            var result = new List<int> { parentId };
-            var queue = new Queue<int>();
-            queue.Enqueue(parentId);
-
-            while (queue.Count > 0)
-            {
-                var currentId = queue.Dequeue();
-                var children = await _context.Categories
-                    .Where(c => c.ParentCategoryId == currentId)
-                    .Select(c => c.Id)
-                    .ToListAsync();
-
-                foreach (var childId in children)
-                {
-                    result.Add(childId);
-                    queue.Enqueue(childId);
-                }
-            }
-
-            return result;
-        }
-
-
-
 
     }
 }
