@@ -10,9 +10,11 @@ namespace TodoList.Repositories
     public class ProductRepository : IProductRepository
     {
         private AppDbContext _context;
-        public ProductRepository(AppDbContext context)
+        private readonly ILogger<ProductRepository> _logger;
+        public ProductRepository(AppDbContext context, ILogger<ProductRepository> logger)
         {
             _context = context;
+            _logger = logger;
         }
         public async Task<Result<Product>> CreateProduct(Product product)
         {
@@ -112,37 +114,50 @@ namespace TodoList.Repositories
             {
                 if (categoryId <= 0)
                 {
+                    _logger.LogWarning("Invalid category ID received: {CategoryId}", categoryId);
                     return Result<List<ProductDto>>.Fail("Invalid category ID.");
                 }
-                var allcategoryId = await GetAllNestedCategoryIds(categoryId);
+
+                _logger.LogInformation("Fetching products for categoryId: {CategoryId}", categoryId);
+
+                var allCategoryIds = await GetAllNestedCategoryIds(categoryId);
+                _logger.LogDebug("Resolved nested category IDs: {NestedCategoryIds}", string.Join(", ", allCategoryIds));
 
                 var products = await _context.Products
-                                    .Where(p => allcategoryId.Contains(p.CategoryId))
-                                    .Include(p => p.Category)
-                                    .ToListAsync();
+                                     .Where(p => allCategoryIds.Contains(p.CategoryId))
+                                     .Include(p => p.Category)
+                                     .ToListAsync();
+
+                _logger.LogInformation("Fetched {ProductCount} products for categoryId: {CategoryId}", products.Count, categoryId);
 
                 var result = new List<ProductDto>();
                 foreach (var product in products)
                 {
                     var path = await GetCategoryPathAsync(product.Category);
+
+                    _logger.LogDebug("Mapped product {ProductId} - '{ProductName}' with category path: {CategoryPath}",
+                                     product.Id, product.Name, path);
+
                     result.Add(new ProductDto
                     {
                         Id = product.Id,
                         Name = product.Name,
                         CategoryId = product.CategoryId,
                         CategoryPath = path,
-
                     });
-
                 }
+
+                _logger.LogInformation("Successfully created product DTO list for categoryId: {CategoryId}", categoryId);
+
                 return Result<List<ProductDto>>.Success(result);
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
-                return Result<List<ProductDto>>.Fail("Excepiton occured", ex);
+                _logger.LogError(ex, "Error occurred while fetching products for categoryId: {CategoryId}", categoryId);
+                return Result<List<ProductDto>>.Fail("Exception occurred while fetching products.", ex);
             }
-
         }
+
 
     }
 }

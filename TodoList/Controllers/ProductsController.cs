@@ -1,8 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TodoList.Data;
-using TodoList.Dtos;
+﻿using Microsoft.AspNetCore.Mvc;
 using TodoList.Models;
 using TodoList.Repositories;
 
@@ -12,12 +8,10 @@ namespace TodoList.Controllers
     [ApiController]
     public class ProductsController : ControllerBase
     {
-        private readonly AppDbContext _context;
         private readonly IProductRepository _repository;
-        
-        public ProductsController(AppDbContext context, IProductRepository repository)
+
+        public ProductsController(IProductRepository repository)
         {
-            _context = context;
             _repository = repository;
         }
 
@@ -26,7 +20,7 @@ namespace TodoList.Controllers
         {
 
             var result = await _repository.CreateProduct(product);
-            if (!result.IsSuccess) 
+            if (!result.IsSuccess)
             {
                 return BadRequest(result.ErrorMessage);
             }
@@ -35,14 +29,11 @@ namespace TodoList.Controllers
         }
 
 
-        
-
-
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProductById(int id)
         {
-           var result = await _repository.GetProductById(id);
-            if (!result.IsSuccess) 
+            var result = await _repository.GetProductById(id);
+            if (!result.IsSuccess)
             {
                 return BadRequest(result.ErrorMessage);
             }
