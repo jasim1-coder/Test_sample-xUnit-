@@ -59,6 +59,59 @@ namespace TodoList.Tests
             Assert.False(result.isCompleted);
         }
 
+        [Fact]
+        public async Task CreateCategories_ThrowsIfNameIsNull()
+        {
+            // Arrange
+            var context = GetInMemoryDbContext();
+            var repository = new CategoryRepository(context);
+
+            var invalidCategory = new Category
+            {
+                Name = null,
+                ParentCategoryId = null
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() => repository.CreateCategories(invalidCategory));
+        }
+        [Fact]
+        public async Task CreateCategories_ThrowsIfParentCategoryDoesNotExist()
+        {
+            // Arrange
+            var context = GetInMemoryDbContext();
+            var repository = new CategoryRepository(context);
+
+            var category = new Category
+            {
+                Name = "Orphan Category",
+                ParentCategoryId = 99 // does not exist
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => repository.CreateCategories(category));
+        }
+        [Fact]
+        public async Task CreateCategories_SetsParentCategoryIdToNullIfZero()
+        {
+            // Arrange
+            var context = GetInMemoryDbContext();
+            var repository = new CategoryRepository(context);
+
+            var category = new Category
+            {
+                Name = "Root Category",
+                ParentCategoryId = 0 // should be converted to null
+            };
+
+            // Act
+            await repository.CreateCategories(category);
+
+            // Assert
+            var createdCategory = await context.Categories.FirstOrDefaultAsync(c => c.Name == "Root Category");
+            Assert.NotNull(createdCategory);
+            Assert.Null(createdCategory.ParentCategoryId);
+        }
 
     }
 }
