@@ -37,7 +37,6 @@ namespace TodoList.Tests
 
             await context.SaveChangesAsync();
 
-
             var repository = new CategoryRepository(context);
 
             //Act
@@ -47,6 +46,30 @@ namespace TodoList.Tests
             Assert.NotNull(result);
             Assert.Equal(2, result.Count);
             Assert.All(result, c => Assert.Equal(1, c.ParentCategoryId));
+
+        }
+
+        [Fact]
+        public  async Task GetCategoryById_ReturnsCorrectCategory()
+        {
+            //Arrange
+            var context = GetInMemoryDbContext();
+
+            context.Categories.Add(new Category { Id = 1, Name = "Test Category", ParentCategoryId = null });
+            context.Categories.Add(new Category { Id = 2, Name = "Another Category", ParentCategoryId = 1 });
+
+            await context.SaveChangesAsync();
+
+            var repository = new CategoryRepository(context);
+
+            //Act
+            var result = await repository.GetCategoryById(1);
+
+
+            //Assert
+            Assert.NotNull(result);
+            Assert.Equal(1, result.Id);
+            Assert.Equal("Test Category", result.Name);
 
         }
 
