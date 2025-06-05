@@ -73,5 +73,28 @@ namespace TodoList.Tests
 
         }
 
+        [Fact]
+        public async Task CreateCategories_AddsValidCategory()
+        {
+            //Arrange
+            var context = GetInMemoryDbContext();
+            context.Categories.Add(new Category { Id = 1, Name = "Parent Category" });
+            await context.SaveChangesAsync();
+
+            var repository = new CategoryRepository(context);
+
+            var newCategory = new Category { Name = "Child Category", ParentCategoryId = 1 };
+
+            //Act
+            await repository.CreateCategories(newCategory);
+
+            //Assert
+            var savedCategory = await context.Categories.FirstOrDefaultAsync(C => C.Name == "Child Category");
+            Assert.NotNull(savedCategory);
+            Assert.Equal("Child Category", savedCategory.Name);
+            Assert.Equal(1, savedCategory.ParentCategoryId);
+        }
+
+
     }
 }
