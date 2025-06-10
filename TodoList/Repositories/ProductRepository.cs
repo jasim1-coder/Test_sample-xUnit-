@@ -60,7 +60,7 @@ namespace TodoList.Repositories
 
 
 
-        public async Task<Result<ProductDto>> GetProductById(int id)
+        public async Task<Result<ProductDto>> GetProductById(int? id)
         {
             try
             {
