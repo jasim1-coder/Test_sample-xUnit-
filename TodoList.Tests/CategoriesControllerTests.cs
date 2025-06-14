@@ -41,7 +41,5 @@ namespace TodoList.Tests
             var returedCategories = Assert.IsAssignableFrom<List<Category>>(okResult.Value);
             Assert.Equal(2, returedCategories.Count);
         }
-
-
     }
 }
