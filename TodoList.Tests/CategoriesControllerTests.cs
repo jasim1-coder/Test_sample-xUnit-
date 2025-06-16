@@ -27,8 +27,10 @@ namespace TodoList.Tests
         {   //arrange
             var categories = new List<Category>
             {
-                new Category { Id = 1, Name = "WORK" },
-                new Category { Id = 2, Name = "Personal" }
+                new Category { Id = 1, Name = "WORK " },
+                new Category { Id = 2, Name = "Personal " },
+                new Category{Id = 3 , Name =   "Professional" },
+                new Category {Id = 4, Name = "Socail"}
             };
 
             _mockRepo.Setup(repo => repo.GetCategories(null))
