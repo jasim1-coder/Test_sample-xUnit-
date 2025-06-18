@@ -61,8 +61,8 @@ namespace TodoList.Tests
 
             var newProduct = new Product
             {
-                Name = "Banana",
-                CategoryId = 2
+                Name = "Apple",
+                CategoryId = 5
             };
 
             // Act
@@ -71,8 +71,8 @@ namespace TodoList.Tests
             // Assert
             Assert.True(result.IsSuccess);
             Assert.NotNull(result.Value);
-            Assert.Equal("Banana", result.Value.Name);
-            Assert.Equal(2, result.Value.CategoryId);
+            Assert.Equal("Apple", result.Value.Name);
+            Assert.Equal(5, result.Value.CategoryId);
 
             // Verify it's in the database
             var created = await context.Products.FirstOrDefaultAsync(p => p.Name == "Banana");
